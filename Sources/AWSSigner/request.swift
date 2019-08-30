@@ -10,7 +10,7 @@ import Foundation
 import NIO
 import NIOHTTP1
 
-public extension HTTPClient.Request {
+public extension HTTPClient {
     /// return signed HTTPClient request with signature in the headers
     static func awsHeaderSignedRequest(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: AWSSigner.BodyData? = nil, date: Date = Date(), signer: AWSSigner) throws -> HTTPClient.Request {
         let signedHeaders = signer.signHeaders(url: url, method: method, headers: headers, body: body, date: date)

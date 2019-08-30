@@ -9,11 +9,10 @@ let package = Package(
         .library(name: "AWSSigner", targets: ["AWSSigner"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.0.0-alpha.1")),
-        .package(url: "https://github.com/swift-aws/Perfect-INIParser", .upToNextMajor(from:"3.0.0"))
+        .package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.0.0-alpha.1"))
     ],
     targets: [
-        .target(name: "AWSSigner", dependencies: ["AsyncHTTPClient", "INIParser"]),
+        .target(name: "AWSSigner", dependencies: ["AsyncHTTPClient"]),
         .testTarget(name: "AWSSignerTests", dependencies: ["AWSSigner"]),
     ]
 )

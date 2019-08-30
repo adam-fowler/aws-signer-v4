@@ -5,7 +5,7 @@ Generate AWS Signed Requests for the [AsyncHttpClient](https://github.com/swift-
 The library extends `HTTPClient` with two functions. One for providing a `HTTPClient.Request` containing a signed URL and the other one with the authorization in the headers. 
 
 ## Usage Guide
-Firstly you need to create a signer object, which is initialised with security credentials for accessing Amazon Web Services, the signing name of the service you are using and the AWS region you are working in. You can create a credentials object directly and enter your credientials or get them from the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. There are other ways of accessing AWS security credentials but that isn't the purpose of this library. The signing name in general is the same as the service name eg `s3`, `sns`, `iam` but this is not always the case. 
+Firstly you need to create a signer object, which is initialised with security credentials for accessing Amazon Web Services, the signing name of the service you are using and the AWS region you are working in. You can create a credentials object directly and enter your credientials or get them from the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` using the `EnvironmentCredential` struct. There are other ways of accessing AWS security credentials but that isn't the purpose of this library. The signing name in general is the same as the service name eg `s3`, `sns`, `iam` but this is not always the case. 
 
 The following example code creates a signed URL to access a file in S3.
 ```

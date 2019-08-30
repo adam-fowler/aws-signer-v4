@@ -190,8 +190,8 @@ public class AWSSigner {
         case .string(let string):
             hash = sha256(string)
         case .data(let data):
-            hash = data.withContiguousStorageIfAvailable { bytes in
-                return sha256(bytes)
+            hash = data.withUnsafeBytes { bytes in
+                return sha256(bytes.bindMemory(to: UInt8.self))
             }
         case .byteBuffer(let byteBuffer):
             let byteBufferView = byteBuffer.readableBytesView
@@ -220,5 +220,5 @@ public class AWSSigner {
         return formatter.string(from: date)
     }
     
-    static let queryAllowedCharacters = CharacterSet(charactersIn:"/;").inverted
+    static let queryAllowedCharacters = CharacterSet(charactersIn:"/;+").inverted
 }

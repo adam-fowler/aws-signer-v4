@@ -2,14 +2,13 @@ import XCTest
 import AsyncHTTPClient
 @testable import AWSSigner
 
-final class aws_signTests: XCTestCase {
+final class AWSSignerTests: XCTestCase {
     let credentials : CredentialProvider = Credential(accessKeyId: "MYACCESSKEY", secretAccessKey: "MYSECRETACCESSKEY")
     
     func testSignGetHeaders() {
         let signer = AWSSigner(credentials: credentials, name: "glacier", region:"us-east-1")
         let headers = signer.signHeaders(url: URL(string:"https://glacier.us-east-1.amazonaws.com/-/vaults")!, method: .GET, headers: ["x-amz-glacier-version":"2012-06-01"], date: Date(timeIntervalSinceReferenceDate: 2000000))
         XCTAssertEqual(headers["Authorization"].first, "AWS4-HMAC-SHA256 Credential=MYACCESSKEY/20010124/us-east-1/glacier/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date;x-amz-glacier-version, Signature=acfa9b03fca6b098d7b88bfd9bbdb4687f5b34e944a9c6ed9f4814c1b0b06d62")
-        print(headers["Authorization"])
     }
     
     func testSignPutHeaders() {
@@ -30,6 +29,9 @@ final class aws_signTests: XCTestCase {
         XCTAssertEqual(url.absoluteString, "https://test-bucket.s3.amazonaws.com/test-put.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=MYACCESSKEY%2F20010102%2Feu-west-1%2Fs3%2Faws4_request&X-Amz-Date=20010102T034640Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=13d665549a6ea5eb6a1615ede83440eaed3e0ee25c964e62d188c896d916d96f")
     }
     static var allTests = [
+        ("testSignGetHeaders", testSignGetHeaders),
+        ("testSignPutHeaders", testSignPutHeaders),
         ("testSignS3GetURL", testSignS3GetURL),
+        ("testSignS3PutURL", testSignS3PutURL),
     ]
 }

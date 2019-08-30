@@ -1,7 +1,7 @@
 import XCTest
 
-import aws_signTests
+import AWSSignerTests
 
 var tests = [XCTestCaseEntry]()
-tests += aws_signTests.allTests()
+tests += AWSSignerTests.allTests()
 XCTMain(tests)

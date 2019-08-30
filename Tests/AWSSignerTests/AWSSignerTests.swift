@@ -1,5 +1,6 @@
 import XCTest
 import AsyncHTTPClient
+import NIO
 @testable import AWSSigner
 
 final class AWSSignerTests: XCTestCase {
@@ -28,6 +29,23 @@ final class AWSSignerTests: XCTestCase {
         let url = signer.signURL(url: URL(string: "https://test-bucket.s3.amazonaws.com/test-put.txt")!, method: .PUT, body: .string("Testing signed URLs"), date:Date(timeIntervalSinceReferenceDate: 100000))
         XCTAssertEqual(url.absoluteString, "https://test-bucket.s3.amazonaws.com/test-put.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=MYACCESSKEY%2F20010102%2Feu-west-1%2Fs3%2Faws4_request&X-Amz-Date=20010102T034640Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=13d665549a6ea5eb6a1615ede83440eaed3e0ee25c964e62d188c896d916d96f")
     }
+    
+    func testBodyData() {
+        let string = "testing, testing, 1,2,1,2"
+        let data = string.data(using: .utf8)!
+        var buffer = ByteBufferAllocator().buffer(capacity: data.count)
+        buffer.writeBytes(data)
+        
+        let signer = AWSSigner(credentials: credentials, name: "sns", region:"eu-west-1")
+        let headers1 = signer.signHeaders(url: URL(string: "https://sns.eu-west-1.amazonaws.com/")!, method: .POST, body: .string(string), date: Date(timeIntervalSinceReferenceDate: 0))
+        let headers2 = signer.signHeaders(url: URL(string: "https://sns.eu-west-1.amazonaws.com/")!, method: .POST, body: .data(data), date: Date(timeIntervalSinceReferenceDate: 0))
+        let headers3 = signer.signHeaders(url: URL(string: "https://sns.eu-west-1.amazonaws.com/")!, method: .POST, body: .byteBuffer(buffer), date: Date(timeIntervalSinceReferenceDate: 0))
+        
+        XCTAssertNotNil(headers1["Authorization"].first)
+        XCTAssertEqual(headers1["Authorization"].first, headers2["Authorization"].first)
+        XCTAssertEqual(headers2["Authorization"].first, headers3["Authorization"].first)
+    }
+
     static var allTests = [
         ("testSignGetHeaders", testSignGetHeaders),
         ("testSignPutHeaders", testSignPutHeaders),

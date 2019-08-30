@@ -2,47 +2,13 @@
 //  hash.swift
 //  AsyncHTTPClient
 //
-//  Created by Adam Fowler on 29/08/2019.
+//  Created by Adam Fowler on 2019/08/29.
 //
 
 import Foundation
 
-//
-//  Hash.swift
-//  AWSSDKSwift
-//
-//  Created by Yuki Takei on 2017/03/13.
-//
-//
-
-import Foundation
-
-#if canImport(CAWSSignOpenSSL)
-
-import CAWSSignOpenSSL
-
-public func sha256(_ string: String) -> [UInt8] {
-    var bytes = Array(string.utf8)
-    return sha256(&bytes)
-}
-
-public func sha256(_ bytes: inout [UInt8]) -> [UInt8] {
-    var hash = [UInt8](repeating: 0, count: Int(SHA256_DIGEST_LENGTH))
-    SHA256(&bytes, bytes.count, &hash)
-    return hash
-}
-
-public func sha256(_ data: Data) -> [UInt8] {
-    return data.withUnsafeBytes { ptr in
-        var hash = [UInt8](repeating: 0, count: Int(SHA256_DIGEST_LENGTH))
-        if let bytes = ptr.baseAddress?.assumingMemoryBound(to: UInt8.self) {
-            SHA256(bytes, data.count, &hash)
-        }
-        return hash
-    }
-}
-
-#elseif canImport(CommonCrypto)
+// Currently only works if CommonCrypto exists. Will look into doing something for Linux later
+#if canImport(CommonCrypto)
 
 import CommonCrypto
 

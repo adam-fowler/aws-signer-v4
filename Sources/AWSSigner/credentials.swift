@@ -2,17 +2,19 @@
 //  credentials.swift
 //  aws-sign
 //
-//  Created by Adam Fowler on 2019/08/29.
+//  Created by Adam Fowler on 29/08/2019.
 //
 import Foundation
 import INIParser
 
+/// Protocol for providing credential details for accessing AWS services
 public protocol CredentialProvider {
     var accessKeyId: String {get}
     var secretAccessKey: String {get}
     var sessionToken: String? {get}
 }
 
+/// basic version of CredentialProvider where you supply the credentials
 public struct Credential : CredentialProvider {
     public let accessKeyId: String
     public let secretAccessKey: String
@@ -25,6 +27,7 @@ public struct Credential : CredentialProvider {
     }
 }
 
+/// environment variable version of credential provider that uses system environment variables to get credential details
 public struct EnvironmentCredential: CredentialProvider {
     public let accessKeyId: String
     public let secretAccessKey: String

@@ -7,8 +7,44 @@
 
 import Foundation
 
-// Currently only works if CommonCrypto exists. Will look into doing something for Linux later
-#if canImport(CommonCrypto)
+// use CAWSSigner if available, otherwise use CommonCrypto
+// Package.swift includes CAWSSigner target if we are running on Linux
+#if canImport(CAWSSigner)
+
+import CAWSSigner
+
+public func sha256(_ string: String) -> [UInt8] {
+    let bytes = Array(string.utf8)
+    return sha256(bytes)
+}
+
+public func sha256(_ bytes: [UInt8]) -> [UInt8] {
+    var hash = [UInt8](repeating: 0, count: Int(SHA256_DIGEST_LENGTH))
+    SHA256(bytes, bytes.count, &hash)
+    return hash
+}
+
+public func sha256(_ buffer: UnsafeBufferPointer<UInt8>) -> [UInt8] {
+    var hash = [UInt8](repeating: 0, count: Int(SHA256_DIGEST_LENGTH))
+    SHA256(buffer.baseAddress, buffer.count, &hash)
+    return hash
+}
+
+func hmac(string: String, key: [UInt8]) -> [UInt8] {
+    let context = AWS_SIGNER_HMAC_CTX_new()
+    HMAC_Init_ex(context, key, Int32(key.count), EVP_sha256(), nil)
+    
+    let bytes = Array(string.utf8)
+    HMAC_Update(context, bytes, bytes.count)
+    var digest = [UInt8](repeating: 0, count: Int(EVP_MAX_MD_SIZE))
+    var length: UInt32 = 0
+    HMAC_Final(context, &digest, &length)
+    AWS_SIGNER_HMAC_CTX_free(context)
+    
+    return Array(digest[0..<Int(length)])
+}
+
+#elseif canImport(CommonCrypto)
 
 import CommonCrypto
 

@@ -7,7 +7,6 @@
 //  AWS documentation about signing requests is here https://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html
 //
 
-import AsyncHTTPClient
 import Foundation
 import NIO
 import NIOHTTP1
@@ -33,17 +32,6 @@ public class AWSSigner {
         case string(String)
         case data(Data)
         case byteBuffer(ByteBuffer)
-        
-        var body : HTTPClient.Body {
-            switch self {
-            case .string(let string):
-                return .string(string)
-            case .data(let data):
-                return .data(data)
-            case .byteBuffer(let byteBuffer):
-                return .byteBuffer(byteBuffer)
-            }
-        }
     }
     
     /// Generate signed headers, for a HTTP request

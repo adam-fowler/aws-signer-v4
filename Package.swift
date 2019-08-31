@@ -7,12 +7,14 @@ let package = Package(
     name: "AWSSigner",
     products: [
         .library(name: "AWSSigner", targets: ["AWSSigner"]),
+        .library(name: "HTTPClientAWSSigner", targets: ["HTTPClientAWSSigner"]),
     ],
     dependencies: [
         .package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.0.0-alpha.1"))
     ],
     targets: [
-        .target(name: "AWSSigner", dependencies: ["AsyncHTTPClient"]),
+        .target(name: "AWSSigner", dependencies: []),
+        .target(name: "HTTPClientAWSSigner", dependencies: ["AWSSigner", "AsyncHTTPClient"]),
         .testTarget(name: "AWSSignerTests", dependencies: ["AWSSigner"]),
     ]
 )

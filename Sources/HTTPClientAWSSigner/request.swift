@@ -6,6 +6,7 @@
 //
 
 import AsyncHTTPClient
+import AWSSigner
 import Foundation
 import NIO
 import NIOHTTP1

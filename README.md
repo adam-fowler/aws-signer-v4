@@ -28,4 +28,30 @@ let signedHeaders = HTTPClient.signHeaders(
                   body: .string(body))
 ```
 
- 
+## AsyncHTTPClient
+The library includes extensions to the HTTPClient of [AsyncHttpClient](https://github.com/swift-server/async-http-client) from the [Swift Server Working Group](https://swift.org/server/). 
+
+Both `HTTPClient.awsURLSignedRequest()` and `HTTPClient.awsHeaderSignedRequest()` will create a signed Request that can be sent to AWS via the HTTPClient from AsyncHttpClient. The following creates a signed S3 Request to upload a file to an S3 bucket and processes it. 
+```
+let credentials = Credential(accessKeyId: "MYACCESSKEY", secretAccessKey: "MYSECRETACCESSKEY")
+let signer = AWSSigner(credentials: credentials, name: "s3", region: "us-east-1")
+let body = "FileContents"
+let request = try HTTPClient.awsURLSignedRequest(
+                    url: URL(string:"mybucket.s3.us-east-1.amazonaws.com/mynewfile")!, 
+                    method: .PUT, 
+                    body: .string(body),
+                    signer: signer)
+let client = HTTPClient(eventLoopGroupProvider: .createNew)
+client.execute(request: request).whenComplete { result in
+    switch result {
+    case .failure(let error):
+        // process error
+    case .success(let response):
+        if response.status == .ok {
+            // handle response
+        } else {
+            // handle remote error
+        }
+    }
+}
+```

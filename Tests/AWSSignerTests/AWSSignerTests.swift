@@ -51,5 +51,6 @@ final class AWSSignerTests: XCTestCase {
         ("testSignPutHeaders", testSignPutHeaders),
         ("testSignS3GetURL", testSignS3GetURL),
         ("testSignS3PutURL", testSignS3PutURL),
+        ("testBodyData", testBodyData),
     ]
 }

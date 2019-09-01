@@ -20,7 +20,7 @@ let package = Package(
     ]
 )
 
-// switch for whether to use CAWSSDKOpenSSL to shim between OpenSSL versions
+// switch for whether to use CAWSSigner to shim between OpenSSL versions
 #if os(Linux)
 let useOpenSSLShim = true
 #else

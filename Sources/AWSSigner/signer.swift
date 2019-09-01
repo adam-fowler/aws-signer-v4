@@ -83,7 +83,7 @@ public class AWSSigner {
         query = query.split(separator: "&")
             .sorted()
             .joined(separator: "&")
-            .addingPercentEncoding(withAllowedCharacters: AWSSigner.queryAllowedCharacters)!
+            .queryEncode()
         
         // update unsignedURL in the signingData so when the canonical request is constructed it includes all the signing query items
         signingData.unsignedURL = URL(string: url.absoluteString.split(separator: "?")[0]+"?"+query)! // NEED TO DEAL WITH SITUATION WHERE THIS FAILS
@@ -137,7 +137,7 @@ public class AWSSigner {
         }
     }
     
-    // Calculating signature as in https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
+    // Stage 3 Calculating signature as in https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
     func signature(signingData: SigningData) -> String {
         let kDate = hmac(string:signingData.date, key:Array("AWS4\(credentials.secretAccessKey)".utf8))
         let kRegion = hmac(string: region, key: kDate)
@@ -147,7 +147,7 @@ public class AWSSigner {
         return AWSSigner.hexEncoded(kSignature)
     }
     
-    /// Create the string to sign as in https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
+    /// Stage 2 Create the string to sign as in https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
     func stringToSign(signingData: SigningData) -> String {
         let stringToSign = "AWS4-HMAC-SHA256\n" +
             "\(signingData.datetime)\n" +
@@ -156,14 +156,14 @@ public class AWSSigner {
         return stringToSign
     }
     
-    /// Create the canonical request as in https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+    /// Stage 1 Create the canonical request as in https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
     func canonicalRequest(signingData: SigningData) -> String {
-        let canonicalHeaders = signingData.headersToSign.map { return "\($0.key.lowercased()):\($0.value)" }
+        let canonicalHeaders = signingData.headersToSign.map { return "\($0.key.lowercased()):\($0.value.trimmingCharacters(in: CharacterSet.whitespaces))" }
             .sorted()
-            .joined(separator: "\n") // REMEMBER TO TRIM THE VALUE
+            .joined(separator: "\n")
         let canonicalRequest = "\(signingData.method.rawValue)\n" +
-            "\(signingData.unsignedURL.path)\n" +
-            "\(signingData.unsignedURL.query ?? "")\n" +
+            "\(signingData.unsignedURL.path.uriEncodeWithSlash())\n" +
+            "\(signingData.unsignedURL.query ?? "")\n" +        // should really uriEncode all the query string values
             "\(canonicalHeaders)\n\n" +
             "\(signingData.signedHeaders)\n" +
             signingData.hashedPayload
@@ -207,6 +207,22 @@ public class AWSSigner {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter.string(from: date)
     }
+}
+
+extension String {
+    func queryEncode() -> String {
+        return addingPercentEncoding(withAllowedCharacters: String.queryAllowedCharacters) ?? self
+    }
     
+    func uriEncode() -> String {
+        return addingPercentEncoding(withAllowedCharacters: String.uriAllowedCharacters) ?? self
+    }
+    
+    func uriEncodeWithSlash() -> String {
+        return addingPercentEncoding(withAllowedCharacters: String.uriAllowedWithSlashCharacters) ?? self
+    }
+    
+    static let uriAllowedWithSlashCharacters = CharacterSet(charactersIn:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~/")
+    static let uriAllowedCharacters = CharacterSet(charactersIn:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
     static let queryAllowedCharacters = CharacterSet(charactersIn:"/;+").inverted
 }

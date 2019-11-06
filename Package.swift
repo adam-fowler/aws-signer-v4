@@ -11,7 +11,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.0.0")),
-        .package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.0.0-alpha.1"))
+        .package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.0.0"))
     ],
     targets: [
         .target(name: "AWSSigner", dependencies: ["NIOHTTP1"]),

@@ -77,7 +77,7 @@ public class AWSSigner {
         query += "&X-Amz-Expires=\(expires)"
         query += "&X-Amz-SignedHeaders=\(signingData.signedHeaders)"
         if let sessionToken = credentials.sessionToken {
-            query += "&X-Amz-Security-Token=\(sessionToken)"
+            query += "&X-Amz-Security-Token=\(sessionToken.uriEncode())"
         }
         // Split the string and sort to ensure the order of query strings is the same as AWS
         query = query.split(separator: "&")

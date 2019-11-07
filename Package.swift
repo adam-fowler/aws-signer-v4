@@ -16,7 +16,7 @@ let package = Package(
     targets: [
         .target(name: "AWSSigner", dependencies: ["NIOHTTP1"]),
         .target(name: "HTTPClientAWSSigner", dependencies: ["AWSSigner", "AsyncHTTPClient"]),
-        .testTarget(name: "AWSSignerTests", dependencies: ["AWSSigner"]),
+        .testTarget(name: "AWSSignerTests", dependencies: ["AWSSigner", "HTTPClientAWSSigner"]),
     ]
 )
 

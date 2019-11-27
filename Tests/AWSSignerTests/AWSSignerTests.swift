@@ -46,6 +46,27 @@ final class AWSSignerTests: XCTestCase {
         XCTAssertEqual(headers2["Authorization"].first, headers3["Authorization"].first)
     }
 
+    func testPerformanceSignedURL() {
+        let signer = AWSSigner(credentials: credentials, name: "s3", region:"eu-west-1")
+
+        measure {
+            for _ in 0..<1000 {
+               _ = signer.signURL(url: URL(string: "https://test-bucket.s3.amazonaws.com/test-put.txt")!, method: .GET)
+            }
+        }
+    }
+    
+    func testPerformanceSignedHeaders() {
+        let string = "testing, testing, 1,2,1,2"
+        let signer = AWSSigner(credentials: credentials, name: "s3", region:"eu-west-1")
+
+        measure {
+            for _ in 0..<1000 {
+                _ = signer.signHeaders(url: URL(string: "https://test-bucket.s3.amazonaws.com/test-put.txt")!, method: .GET, headers: ["Content-Type": "application/x-www-form-urlencoded; charset=utf-8"], body: .string(string))
+            }
+        }
+    }
+    
     static var allTests = [
         ("testSignGetHeaders", testSignGetHeaders),
         ("testSignPutHeaders", testSignPutHeaders),

@@ -20,6 +20,8 @@ public final class AWSSigner {
     /// AWS region you are working in
     public let region: String
     
+    static let hashedEmptyBody = AWSSigner.hexEncoded(sha256([UInt8]()))
+    
     /// Initialise the Signer class with AWS credentials
     public init(credentials: CredentialProvider, name: String, region: String) {
         self.credentials = credentials
@@ -36,17 +38,19 @@ public final class AWSSigner {
     
     /// Generate signed headers, for a HTTP request
     public func signHeaders(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: BodyData? = nil, date: Date = Date()) -> HTTPHeaders {
+        let bodyHash = AWSSigner.hashedPayload(body)
+        let dateString = AWSSigner.timestamp(date)
         var headers = headers
         // add date, host, sha256 and if available security token headers
-        headers.add(name: "X-Amz-Date", value: AWSSigner.timestamp(date))
+        headers.add(name: "X-Amz-Date", value: dateString)
         headers.add(name: "host", value: url.host ?? "")
-        headers.add(name: "x-amz-content-sha256", value: AWSSigner.hashedPayload(body))
+        headers.add(name: "x-amz-content-sha256", value: bodyHash)
         if let sessionToken = credentials.sessionToken {
             headers.add(name: "x-amz-security-token", value: sessionToken)
         }
         
         // construct signing data. Do this after adding the headers as it uses data from the headers
-        let signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, date: date, signer: self)
+        let signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, bodyHash: bodyHash, date: dateString, signer: self)
         
         // construct authorization string
         let authorization = "AWS4-HMAC-SHA256 " +
@@ -64,7 +68,7 @@ public final class AWSSigner {
     public func signURL(url: URL, method: HTTPMethod = .GET, body: BodyData? = nil, date: Date = Date(), expires: Int = 86400) -> URL {
         let headers = HTTPHeaders([("host", url.host ?? "")])
         // Create signing data
-        let signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, date: date, signer: self)
+        let signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, date: AWSSigner.timestamp(date), signer: self)
         
         // Construct query string. Start with original query strings and append all the signing info.
         var query = url.query ?? ""
@@ -91,6 +95,7 @@ public final class AWSSigner {
         
         // Add signature to query items and build a new Request
         let signedURL = URL(string: url.absoluteString.split(separator: "?")[0]+"?"+query)!
+
         return signedURL
     }
     
@@ -106,13 +111,13 @@ public final class AWSSigner {
         
         var date : String { return String(datetime.prefix(8))}
         
-        init(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: BodyData? = nil, date: Date = Date(), signer: AWSSigner) {
+        init(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: BodyData? = nil, bodyHash: String? = nil, date: String, signer: AWSSigner) {
             self.url = url
             self.method = method
-            self.datetime = headers["x-amz-date"].first ?? AWSSigner.timestamp(date)
+            self.datetime = date
             self.unsignedURL = self.url
 
-            if let hash = headers["x-amz-content-sha256"].first {
+            if let hash = bodyHash {
                 self.hashedPayload = hash
             } else if signer.name == "s3" {
                 self.hashedPayload = "UNSIGNED-PAYLOAD"
@@ -123,17 +128,17 @@ public final class AWSSigner {
             let headersNotToSign: Set<String> = [
                 "Authorization"
             ]
-            var headersToSign : [String: String] = [:]
+            var headersToSign: [String: String] = [:]
+            var signedHeadersArray: [String] = []
             for header in headers {
                 if headersNotToSign.contains(header.name) {
                     continue
                 }
                 headersToSign[header.name] = header.value
+                signedHeadersArray.append(header.name.lowercased())
             }
             self.headersToSign = headersToSign
-            self.signedHeaders = headersToSign.map { return "\($0.key.lowercased())" }
-                .sorted()
-                .joined(separator: ";")
+            self.signedHeaders = signedHeadersArray.sorted().joined(separator: ";")
         }
     }
     
@@ -172,7 +177,7 @@ public final class AWSSigner {
     
     /// Create a SHA256 hash of the Requests body
     static func hashedPayload(_ payload: BodyData?) -> String {
-        guard let payload = payload else { return AWSSigner.hexEncoded(sha256([UInt8]())) }
+        guard let payload = payload else { return hashedEmptyBody }
         let hash : [UInt8]?
         switch payload {
         case .string(let string):
@@ -190,7 +195,7 @@ public final class AWSSigner {
         if let hash = hash {
             return AWSSigner.hexEncoded(hash)
         } else {
-            return AWSSigner.hexEncoded(sha256([UInt8]()))
+            return hashedEmptyBody
         }
     }
     

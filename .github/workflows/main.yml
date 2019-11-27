@@ -1,0 +1,41 @@
+name: Swift
+
+on: [push, pull_request, release]
+
+jobs:
+  macOS:
+    runs-on: macOS-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+    - name: Build
+      run: swift build
+    - name: Test
+      run: swift test
+      
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tag: ['5.0', '5.1']
+    container:
+      image: swift:${{ matrix.tag }}
+      volumes:
+      - $GITHUB_WORKSPACE:/src
+      options: --workdir /src
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+    - name: Install dependencies
+      run: |
+        apt-get update -qq
+        apt-get install -q -y tzdata libssl-dev zlib1g-dev
+    - name: Build
+      run: swift build
+    - name: Test
+      run: swift test
+    

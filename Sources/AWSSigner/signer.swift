@@ -12,7 +12,7 @@ import NIO
 import NIOHTTP1
 
 /// Amazon Web Services V4 Signer
-public class AWSSigner {
+public final class AWSSigner {
     /// security credentials for accessing AWS services
     public let credentials: CredentialProvider
     /// service signing name. In general this is the same as the service name
@@ -64,7 +64,7 @@ public class AWSSigner {
     public func signURL(url: URL, method: HTTPMethod = .GET, body: BodyData? = nil, date: Date = Date(), expires: Int = 86400) -> URL {
         let headers = HTTPHeaders([("host", url.host ?? "")])
         // Create signing data
-        var signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, date: date, signer: self)
+        let signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, date: date, signer: self)
         
         // Construct query string. Start with original query strings and append all the signing info.
         var query = url.query ?? ""
@@ -95,7 +95,7 @@ public class AWSSigner {
     }
     
     /// structure used to store data used throughout the signing process
-    struct SigningData {
+    class SigningData {
         let url : URL
         let method : HTTPMethod
         let hashedPayload : String

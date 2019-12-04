@@ -13,8 +13,7 @@ import NIOHTTP1
 
 /// Amazon Web Services V4 Signer
 public final class AWSSigner {
-    /// security credentials for accessing AWS services
-    public let credentials: CredentialProvider
+
     /// service signing name. In general this is the same as the service name
     public let name: String
     /// AWS region you are working in
@@ -23,8 +22,7 @@ public final class AWSSigner {
     static let hashedEmptyBody = AWSSigner.hexEncoded(sha256([UInt8]()))
     
     /// Initialise the Signer class with AWS credentials
-    public init(credentials: CredentialProvider, name: String, region: String) {
-        self.credentials = credentials
+    public init(name: String, region: String) {
         self.name = name
         self.region = region
     }
@@ -37,7 +35,7 @@ public final class AWSSigner {
     }
     
     /// Generate signed headers, for a HTTP request
-    public func signHeaders(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: BodyData? = nil, date: Date = Date()) -> HTTPHeaders {
+    public func signHeaders(with credential: Credential, url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: BodyData? = nil, date: Date = Date()) -> HTTPHeaders {
         let bodyHash = AWSSigner.hashedPayload(body)
         let dateString = AWSSigner.timestamp(date)
         var headers = headers
@@ -45,7 +43,7 @@ public final class AWSSigner {
         headers.add(name: "X-Amz-Date", value: dateString)
         headers.add(name: "host", value: url.host ?? "")
         headers.add(name: "x-amz-content-sha256", value: bodyHash)
-        if let sessionToken = credentials.sessionToken {
+        if let sessionToken = credential.sessionToken {
             headers.add(name: "x-amz-security-token", value: sessionToken)
         }
         
@@ -54,9 +52,9 @@ public final class AWSSigner {
         
         // construct authorization string
         let authorization = "AWS4-HMAC-SHA256 " +
-            "Credential=\(credentials.accessKeyId)/\(signingData.date)/\(region)/\(name)/aws4_request, " +
+            "Credential=\(credential.accessKeyId)/\(signingData.date)/\(region)/\(name)/aws4_request, " +
             "SignedHeaders=\(signingData.signedHeaders), " +
-        "Signature=\(signature(signingData: signingData))"
+        "Signature=\(signature(signingData: signingData, credential: credential))"
         
         // add Authorization header
         headers.add(name: "Authorization", value: authorization)
@@ -65,7 +63,7 @@ public final class AWSSigner {
     }
     
     /// Generate a signed URL, for a HTTP request
-    public func signURL(url: URL, method: HTTPMethod = .GET, body: BodyData? = nil, date: Date = Date(), expires: Int = 86400) -> URL {
+    public func signURL(with credential: Credential, url: URL, method: HTTPMethod = .GET, body: BodyData? = nil, date: Date = Date(), expires: Int = 86400) -> URL {
         let headers = HTTPHeaders([("host", url.host ?? "")])
         // Create signing data
         let signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, date: AWSSigner.timestamp(date), signer: self)
@@ -76,11 +74,11 @@ public final class AWSSigner {
             query += "&"
         }
         query += "X-Amz-Algorithm=AWS4-HMAC-SHA256"
-        query += "&X-Amz-Credential=\(credentials.accessKeyId)/\(signingData.date)/\(region)/\(name)/aws4_request"
+        query += "&X-Amz-Credential=\(credential.accessKeyId)/\(signingData.date)/\(region)/\(name)/aws4_request"
         query += "&X-Amz-Date=\(signingData.datetime)"
         query += "&X-Amz-Expires=\(expires)"
         query += "&X-Amz-SignedHeaders=\(signingData.signedHeaders)"
-        if let sessionToken = credentials.sessionToken {
+        if let sessionToken = credential.sessionToken {
             query += "&X-Amz-Security-Token=\(sessionToken.uriEncode())"
         }
         // Split the string and sort to ensure the order of query strings is the same as AWS
@@ -91,7 +89,7 @@ public final class AWSSigner {
         
         // update unsignedURL in the signingData so when the canonical request is constructed it includes all the signing query items
         signingData.unsignedURL = URL(string: url.absoluteString.split(separator: "?")[0]+"?"+query)! // NEED TO DEAL WITH SITUATION WHERE THIS FAILS
-        query += "&X-Amz-Signature=\(signature(signingData: signingData))"
+        query += "&X-Amz-Signature=\(signature(signingData: signingData, credential: credential))"
         
         // Add signature to query items and build a new Request
         let signedURL = URL(string: url.absoluteString.split(separator: "?")[0]+"?"+query)!
@@ -143,8 +141,8 @@ public final class AWSSigner {
     }
     
     // Stage 3 Calculating signature as in https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
-    func signature(signingData: SigningData) -> String {
-        let kDate = hmac(string:signingData.date, key:Array("AWS4\(credentials.secretAccessKey)".utf8))
+    func signature(signingData: SigningData, credential: Credential) -> String {
+        let kDate = hmac(string:signingData.date, key:Array("AWS4\(credential.secretAccessKey)".utf8))
         let kRegion = hmac(string: region, key: kDate)
         let kService = hmac(string: name, key: kRegion)
         let kSigning = hmac(string: "aws4_request", key: kService)

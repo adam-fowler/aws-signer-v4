@@ -10,13 +10,13 @@ public protocol HashFunction {
     associatedtype Digest: AWSCrypto.Digest
 
     /// hash raw buffer
-    static func hash(bytes: UnsafeRawBufferPointer) -> Self.Digest
+    static func hash(bufferPointer: UnsafeRawBufferPointer) -> Self.Digest
 
     /// initialization
     init()
     
     /// update hash function with data
-    mutating func update(bytes: UnsafeRawBufferPointer)
+    mutating func update(bufferPointer: UnsafeRawBufferPointer)
     /// finalize hash function and return digest
     mutating func finalize() -> Self.Digest
 }
@@ -24,37 +24,37 @@ public protocol HashFunction {
 extension HashFunction {
     
     /// default version of hash which call init, update and finalize
-    public static func hash(bytes: UnsafeRawBufferPointer) -> Self.Digest {
+    public static func hash(bufferPointer: UnsafeRawBufferPointer) -> Self.Digest {
         var function = Self()
-        function.update(bytes: bytes)
+        function.update(bufferPointer: bufferPointer)
         return function.finalize()
     }
     
     /// version of hash that takes data in any form that complies with DataProtocol
     public static func hash<D: DataProtocol>(data: D) -> Self.Digest {
         if let digest = data.withContiguousStorageIfAvailable({ bytes in
-            return self.hash(bytes: .init(bytes))
+            return self.hash(bufferPointer: .init(bytes))
         }) {
             return digest
         } else {
             var buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: data.count)
             data.copyBytes(to: buffer)
             defer { buffer.deallocate() }
-            return self.hash(bytes: .init(buffer))
+            return self.hash(bufferPointer: .init(buffer))
         }
     }
     
     /// version of update that takes data in any form that complies with DataProtocol
     public mutating func update<D: DataProtocol>(data: D) {
         if let digest = data.withContiguousStorageIfAvailable({ bytes in
-            return self.update(bytes: .init(bytes))
+            return self.update(bufferPointer: .init(bytes))
         }) {
             return digest
         } else {
             var buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: data.count)
             data.copyBytes(to: buffer)
             defer { buffer.deallocate() }
-            self.update(bytes: .init(buffer))
+            self.update(bufferPointer: .init(buffer))
         }
     }
 }
@@ -66,28 +66,6 @@ import CommonCrypto
 /// public protocol for Common Crypto hash functions
 public protocol CCHashFunction: HashFunction {
     static var algorithm: CCHmacAlgorithm { get }
-}
-
-/// internal protocol for Common Crypto hash functions that hides implementation details
-protocol _CCHashFunction: CCHashFunction where Digest: ByteDigest {
-    /// Context type that holds the hash function context
-    associatedtype Context
-    
-    /// hashing context instance
-    var context: Context { get set }
-    
-    /// creates a hashing context
-    static func createContext() -> Context
-    
-    /// initialization with context, required by init()
-    init(context: Context)
-    
-    /// init hash function
-    func initFunction(_ :UnsafeMutablePointer<Context>)
-    /// update hash function
-    func updateFunction(_ :UnsafeMutablePointer<Context>, _ :UnsafeRawPointer, _ :CC_LONG)
-    /// finalize hash function
-    func finalFunction(_ :UnsafeMutablePointer<UInt8>, _ :UnsafeMutablePointer<Context>) -> Int32
 }
 
 #else
@@ -118,8 +96,8 @@ extension _OpenSSLHashFunction {
     }
     
     /// update hash function with data
-    public mutating func update(bytes: UnsafeRawBufferPointer) {
-        EVP_DigestUpdate(context, bytes.baseAddress, bytes.count)
+    public mutating func update(bufferPointer: UnsafeRawBufferPointer) {
+        EVP_DigestUpdate(context, bufferPointer.baseAddress, bufferPointer.count)
     }
     
     /// finalize hash function and return digest

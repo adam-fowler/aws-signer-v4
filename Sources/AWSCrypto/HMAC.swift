@@ -28,14 +28,14 @@ public struct HMAC<H: CCHashFunction> {
     /// update HMAC calculation with a block of data
     public mutating func update<D: DataProtocol>(data: D) {
         if let digest = data.withContiguousStorageIfAvailable({ bytes in
-            return self.update(bytes: .init(bytes))
+            return self.update(bufferPointer: .init(bytes))
         }) {
             return digest
         } else {
             var buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: data.count)
             data.copyBytes(to: buffer)
             defer { buffer.deallocate() }
-            self.update(bytes: .init(buffer))
+            self.update(bufferPointer: .init(buffer))
         }
     }
 }
@@ -54,8 +54,8 @@ extension HMAC {
     }
     
     /// update HMAC calculation with a buffer
-    public mutating func update(bytes: UnsafeRawBufferPointer) {
-        CCHmacUpdate(&context, bytes.baseAddress, bytes.count)
+    public mutating func update(bufferPointer: UnsafeRawBufferPointer) {
+        CCHmacUpdate(&context, bufferPointer.baseAddress, bufferPointer.count)
     }
     
     /// finalize HMAC calculation and return authentication code
@@ -85,14 +85,14 @@ public struct HMAC<H: OpenSSLHashFunction> {
     /// update HMAC calculation with a block of data
     public mutating func update<D: DataProtocol>(data: D) {
         if let digest = data.withContiguousStorageIfAvailable({ bytes in
-            return self.update(bytes: bytes)
+            return self.update(bufferPointer: bytes)
         }) {
             return digest
         } else {
             var buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: data.count)
             data.copyBytes(to: buffer)
             defer { buffer.deallocate() }
-            self.update(bytes: .init(buffer))
+            self.update(bufferPointer: .init(buffer))
         }
     }
 }
@@ -111,8 +111,8 @@ extension HMAC {
     }
     
     /// update HMAC calculation with a buffer
-    mutating func update(bytes: UnsafeBufferPointer<UInt8>) {
-        HMAC_Update(context, bytes.baseAddress, bytes.count)
+    mutating func update(bufferPointer: UnsafeBufferPointer<UInt8>) {
+        HMAC_Update(context, bufferPointer.baseAddress, bufferPointer.count)
     }
     
     /// finalize HMAC calculation and return authentication code

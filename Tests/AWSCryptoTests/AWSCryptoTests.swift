@@ -42,4 +42,10 @@ final class AWSCryptoTests: XCTestCase {
         print(authenticationKey)
         XCTAssertEqual(authenticationKey.description, "ddec250211f1b546254bab3fb027af1acc4842898e8af6eeadcdbf8e2c6c1ff5")
     }
+
+    static var allTests = [
+        ("testMD5", testMD5),
+        ("testSHA256", testSHA256),
+        ("testHMAC", testHMAC),
+    ]
 }

@@ -15,9 +15,9 @@ public struct MD5: CCHashFunction {
     public static var algorithm: CCHmacAlgorithm { return CCHmacAlgorithm(kCCHmacAlgMD5) }
     var context: CC_MD5_CTX
 
-    public static func hash(bytes: UnsafeRawBufferPointer) -> Self.Digest {
+    public static func hash(bufferPointer: UnsafeRawBufferPointer) -> Self.Digest {
         var digest: [UInt8] = .init(repeating: 0, count: Digest.byteCount)
-        CC_MD5(bytes.baseAddress, CC_LONG(bytes.count), &digest)
+        CC_MD5(bufferPointer.baseAddress, CC_LONG(bufferPointer.count), &digest)
         return .init(bytes: digest)
     }
 
@@ -26,8 +26,8 @@ public struct MD5: CCHashFunction {
         CC_MD5_Init(&context)
     }
     
-    public mutating func update(bytes: UnsafeRawBufferPointer) {
-        CC_MD5_Update(&context, bytes.baseAddress, CC_LONG(bytes.count))
+    public mutating func update(bufferPointer: UnsafeRawBufferPointer) {
+        CC_MD5_Update(&context, bufferPointer.baseAddress, CC_LONG(bufferPointer.count))
     }
     
     public mutating func finalize() -> Self.Digest {

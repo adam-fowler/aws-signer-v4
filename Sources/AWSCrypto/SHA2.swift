@@ -15,9 +15,9 @@ public struct SHA256: CCHashFunction {
     public static var algorithm: CCHmacAlgorithm { return CCHmacAlgorithm(kCCHmacAlgSHA256) }
     var context: CC_SHA256_CTX
 
-    public static func hash(bytes: UnsafeRawBufferPointer) -> Self.Digest {
+    public static func hash(bufferPointer: UnsafeRawBufferPointer) -> Self.Digest {
         var digest: [UInt8] = .init(repeating: 0, count: Digest.byteCount)
-        CC_SHA256(bytes.baseAddress, CC_LONG(bytes.count), &digest)
+        CC_SHA256(bufferPointer.baseAddress, CC_LONG(bufferPointer.count), &digest)
         return .init(bytes: digest)
     }
 
@@ -26,8 +26,8 @@ public struct SHA256: CCHashFunction {
         CC_SHA256_Init(&context)
     }
     
-    public mutating func update(bytes: UnsafeRawBufferPointer) {
-        CC_SHA256_Update(&context, bytes.baseAddress, CC_LONG(bytes.count))
+    public mutating func update(bufferPointer: UnsafeRawBufferPointer) {
+        CC_SHA256_Update(&context, bufferPointer.baseAddress, CC_LONG(bufferPointer.count))
     }
     
     public mutating func finalize() -> Self.Digest {

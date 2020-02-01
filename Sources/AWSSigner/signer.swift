@@ -188,7 +188,7 @@ public struct AWSSigner {
         case .byteBuffer(let byteBuffer):
             let byteBufferView = byteBuffer.readableBytesView
             hash = byteBufferView.withContiguousStorageIfAvailable { bytes in
-                return SHA256.hash(bytes: .init(bytes)).description
+                return SHA256.hash(data: bytes).description
             }
         }
         if let hash = hash {

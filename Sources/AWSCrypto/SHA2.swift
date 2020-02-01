@@ -133,7 +133,7 @@ public struct SHA512Digest : ByteDigest {
 }
 
 public struct SHA512: _OpenSSLHashFunction {
-    public typealias Digest = SHA256Digest
+    public typealias Digest = SHA512Digest
     public static var algorithm: OpaquePointer { return EVP_sha512() }
     var context: OpaquePointer
 }

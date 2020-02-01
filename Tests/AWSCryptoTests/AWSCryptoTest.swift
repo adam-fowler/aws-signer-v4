@@ -38,7 +38,7 @@ final class AWSCryptoTests: XCTestCase {
     func testHMAC() {
         let data = createRandomBuffer(1, 91, size: 347237)
         let key = createRandomBuffer(102, 3, size: 32)
-        let authenticationKey = HMAC<SHA256>.authenticationCode(for: data, using: key)
+        let authenticationKey = HMAC<SHA256>.authenticationCode(for: data, using: SymmetricKey(data: key))
         print(authenticationKey)
         XCTAssertEqual(authenticationKey.description, "ddec250211f1b546254bab3fb027af1acc4842898e8af6eeadcdbf8e2c6c1ff5")
     }

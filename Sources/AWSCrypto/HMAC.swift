@@ -15,11 +15,11 @@ import CommonCrypto
 /// Object generating HMAC for data block given a symmetric key
 public struct HMAC<H: CCHashFunction> {
     
-    let key: [UInt8]
+    let key: SymmetricKey
     var context: CCHmacContext
     
     /// return authentication code for data block given a symmetric key
-    public static func authenticationCode<D : DataProtocol>(for data: D, using key: [UInt8]) -> HashAuthenticationCode {
+    public static func authenticationCode<D : DataProtocol>(for data: D, using key: SymmetricKey) -> HashAuthenticationCode {
         var hmac = HMAC(key: key)
         hmac.update(data: data)
         return hmac.finalize()
@@ -42,7 +42,7 @@ public struct HMAC<H: CCHashFunction> {
 
 extension HMAC {
     /// initialize HMAC with symmetric key
-    public init(key: [UInt8]) {
+    public init(key: SymmetricKey) {
         self.key = key
         self.context = CCHmacContext()
         self.initialize()
@@ -50,7 +50,7 @@ extension HMAC {
     
     /// initialize HMAC calculation
     mutating func initialize() {
-        CCHmacInit(&context, H.algorithm, key, key.count)
+        CCHmacInit(&context, H.algorithm, key.bytes, key.bytes.count)
     }
     
     /// update HMAC calculation with a buffer
@@ -72,11 +72,11 @@ import CAWSCrypto
 
 public struct HMAC<H: OpenSSLHashFunction> {
     
-    let key: [UInt8]
+    let key: SymmetricKey
     var context: OpaquePointer
     
     /// return authentication code for data block given a symmetric key
-    public static func authenticationCode<D : DataProtocol>(for data: D, using key: [UInt8]) -> HashAuthenticationCode {
+    public static func authenticationCode<D : DataProtocol>(for data: D, using key: SymmetricKey) -> HashAuthenticationCode {
         var hmac = HMAC(key: key)
         hmac.update(data: data)
         return hmac.finalize()
@@ -99,7 +99,7 @@ public struct HMAC<H: OpenSSLHashFunction> {
 
 extension HMAC {
     /// initialize HMAC with symmetric key
-    public init(key: [UInt8]) {
+    public init(key: SymmetricKey) {
         self.key = key
         self.context = AWSCRYPTO_HMAC_CTX_new()
         self.initialize()
@@ -107,7 +107,7 @@ extension HMAC {
     
     /// initialize HMAC calculation
     mutating func initialize() {
-        HMAC_Init_ex(context, key, Int32(key.count), H.algorithm, nil)
+        HMAC_Init_ex(context, key.bytes, Int32(key.bytes.count), H.algorithm, nil)
     }
     
     /// update HMAC calculation with a buffer

@@ -145,11 +145,11 @@ public struct AWSSigner {
     
     // Stage 3 Calculating signature as in https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
     func signature(signingData: SigningData) -> String {
-        let kDate = HMAC<SHA256>.authenticationCode(for: Data(signingData.date.utf8), using: Array("AWS4\(credentials.secretAccessKey)".utf8))
-        let kRegion = HMAC<SHA256>.authenticationCode(for: Data(region.utf8), using: kDate.bytes)
-        let kService = HMAC<SHA256>.authenticationCode(for: Data(name.utf8), using: kRegion.bytes)
-        let kSigning = HMAC<SHA256>.authenticationCode(for: Data("aws4_request".utf8), using: kService.bytes)
-        let kSignature = HMAC<SHA256>.authenticationCode(for: stringToSign(signingData: signingData), using: kSigning.bytes)
+        let kDate = HMAC<SHA256>.authenticationCode(for: Data(signingData.date.utf8), using: SymmetricKey(data: Array("AWS4\(credentials.secretAccessKey)".utf8)))
+        let kRegion = HMAC<SHA256>.authenticationCode(for: Data(region.utf8), using: SymmetricKey(data: kDate))
+        let kService = HMAC<SHA256>.authenticationCode(for: Data(name.utf8), using: SymmetricKey(data: kRegion))
+        let kSigning = HMAC<SHA256>.authenticationCode(for: Data("aws4_request".utf8), using: SymmetricKey(data: kService))
+        let kSignature = HMAC<SHA256>.authenticationCode(for: stringToSign(signingData: signingData), using: SymmetricKey(data: kSigning))
         return kSignature.description
     }
     

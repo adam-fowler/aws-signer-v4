@@ -8,22 +8,23 @@
 //
 
 import Foundation
+import AWSCrypto
 import NIO
 import NIOHTTP1
 
 /// Amazon Web Services V4 Signer
-public final class AWSSigner {
+public struct AWSSigner {
     /// security credentials for accessing AWS services
-    public let credentials: CredentialProvider
+    public let credentials: Credential
     /// service signing name. In general this is the same as the service name
     public let name: String
     /// AWS region you are working in
     public let region: String
     
-    static let hashedEmptyBody = AWSSigner.hexEncoded(sha256([UInt8]()))
+    static let hashedEmptyBody = SHA256.hash(data: [UInt8]()).description
     
     /// Initialise the Signer class with AWS credentials
-    public init(credentials: CredentialProvider, name: String, region: String) {
+    public init(credentials: Credential, name: String, region: String) {
         self.credentials = credentials
         self.name = name
         self.region = region
@@ -144,25 +145,25 @@ public final class AWSSigner {
     
     // Stage 3 Calculating signature as in https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
     func signature(signingData: SigningData) -> String {
-        let kDate = hmac(string:signingData.date, key:Array("AWS4\(credentials.secretAccessKey)".utf8))
-        let kRegion = hmac(string: region, key: kDate)
-        let kService = hmac(string: name, key: kRegion)
-        let kSigning = hmac(string: "aws4_request", key: kService)
-        let kSignature = hmac(string: stringToSign(signingData: signingData), key: kSigning)
-        return AWSSigner.hexEncoded(kSignature)
+        let kDate = HMAC<SHA256>.authenticationCode(for: Data(signingData.date.utf8), using: Array("AWS4\(credentials.secretAccessKey)".utf8))
+        let kRegion = HMAC<SHA256>.authenticationCode(for: Data(region.utf8), using: kDate.bytes)
+        let kService = HMAC<SHA256>.authenticationCode(for: Data(name.utf8), using: kRegion.bytes)
+        let kSigning = HMAC<SHA256>.authenticationCode(for: Data("aws4_request".utf8), using: kService.bytes)
+        let kSignature = HMAC<SHA256>.authenticationCode(for: stringToSign(signingData: signingData), using: kSigning.bytes)
+        return kSignature.description
     }
     
     /// Stage 2 Create the string to sign as in https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
-    func stringToSign(signingData: SigningData) -> String {
+    func stringToSign(signingData: SigningData) -> Data {
         let stringToSign = "AWS4-HMAC-SHA256\n" +
             "\(signingData.datetime)\n" +
             "\(signingData.date)/\(region)/\(name)/aws4_request\n" +
-            AWSSigner.hexEncoded(sha256(canonicalRequest(signingData: signingData)))
-        return stringToSign
+            SHA256.hash(data: canonicalRequest(signingData: signingData)).description
+        return Data(stringToSign.utf8)
     }
     
     /// Stage 1 Create the canonical request as in https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
-    func canonicalRequest(signingData: SigningData) -> String {
+    func canonicalRequest(signingData: SigningData) -> Data {
         let canonicalHeaders = signingData.headersToSign.map { return "\($0.key.lowercased()):\($0.value.trimmingCharacters(in: CharacterSet.whitespaces))" }
             .sorted()
             .joined(separator: "\n")
@@ -172,28 +173,26 @@ public final class AWSSigner {
             "\(canonicalHeaders)\n\n" +
             "\(signingData.signedHeaders)\n" +
             signingData.hashedPayload
-        return canonicalRequest
+        return Data(canonicalRequest.utf8)
     }
     
     /// Create a SHA256 hash of the Requests body
     static func hashedPayload(_ payload: BodyData?) -> String {
         guard let payload = payload else { return hashedEmptyBody }
-        let hash : [UInt8]?
+        let hash : String?
         switch payload {
         case .string(let string):
-            hash = sha256(string)
+            hash = SHA256.hash(data: Data(string.utf8)).description
         case .data(let data):
-            hash = data.withUnsafeBytes { bytes in
-                return sha256(bytes.bindMemory(to: UInt8.self))
-            }
+            hash = SHA256.hash(data: data).description
         case .byteBuffer(let byteBuffer):
             let byteBufferView = byteBuffer.readableBytesView
             hash = byteBufferView.withContiguousStorageIfAvailable { bytes in
-                return sha256(bytes)
+                return SHA256.hash(bytes: .init(bytes)).description
             }
         }
         if let hash = hash {
-            return AWSSigner.hexEncoded(hash)
+            return hash
         } else {
             return hashedEmptyBody
         }

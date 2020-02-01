@@ -4,7 +4,7 @@ import NIO
 @testable import AWSSigner
 
 final class AWSSignerTests: XCTestCase {
-    let credentials : CredentialProvider = Credential(accessKeyId: "MYACCESSKEY", secretAccessKey: "MYSECRETACCESSKEY")
+    let credentials : Credential = StaticCredential(accessKeyId: "MYACCESSKEY", secretAccessKey: "MYSECRETACCESSKEY")
     
     func testSignGetHeaders() {
         let signer = AWSSigner(credentials: credentials, name: "glacier", region:"us-east-1")

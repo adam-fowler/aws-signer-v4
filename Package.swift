@@ -1,38 +1,23 @@
-// swift-tools-version:5.0
+// swift-tools-version:5.1
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
     name: "AWSSigner",
+    platforms: [.macOS(.v10_15), .iOS(.v13), .watchOS(.v6), .tvOS(.v13)],
     products: [
         .library(name: "AWSSigner", targets: ["AWSSigner"]),
         .library(name: "HTTPClientAWSSigner", targets: ["HTTPClientAWSSigner"]),
     ],
     dependencies: [
+        .package(url: "https://github.com/apple/swift-crypto", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.0.0")),
         .package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.0.0"))
     ],
     targets: [
-        .target(name: "AWSSigner", dependencies: ["AWSCrypto", "NIO", "NIOHTTP1"]),
-        .target(name: "AWSCrypto", dependencies: ["CAWSCrypto"]),
-        .target(name: "CAWSCrypto", dependencies: []),
-
+        .target(name: "AWSSigner", dependencies: ["Crypto", "NIO", "NIOHTTP1"]),
         .target(name: "HTTPClientAWSSigner", dependencies: ["AWSSigner", "AsyncHTTPClient"]),
-        
-        .testTarget(name: "AWSSignerTests", dependencies: ["AWSSigner", "HTTPClientAWSSigner"]),
-        .testTarget(name: "AWSCryptoTests", dependencies: ["AWSCrypto"]),
+        .testTarget(name: "AWSSignerTests", dependencies: ["AWSSigner", "HTTPClientAWSSigner"])
     ]
 )
-
-// switch for whether to use CAWSSigner to shim between OpenSSL versions
-#if os(Linux)
-let useOpenSSLShim = true
-#else
-let useOpenSSLShim = false
-#endif
-
-// Decide on where we get our SSL support from. Linux usses NIOSSL to provide SSL. Linux also needs CAWSSDKOpenSSL to shim across different OpenSSL versions for the HMAC functions.
-if useOpenSSLShim {
-    package.dependencies.append(.package(url: "https://github.com/apple/swift-nio-ssl-support.git", from: "1.0.0"))
-}

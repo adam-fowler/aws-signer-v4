@@ -7,7 +7,13 @@
 //  AWS documentation about signing requests is here https://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html
 //
 
-import Foundation
+import struct Foundation.CharacterSet
+import struct Foundation.Data
+import struct Foundation.Date
+import class Foundation.DateFormatter
+import struct Foundation.Locale
+import struct Foundation.TimeZone
+import struct Foundation.URL
 import Crypto
 import NIO
 import NIOHTTP1
@@ -22,6 +28,8 @@ public struct AWSSigner {
     public let region: String
 
     static let hashedEmptyBody = SHA256.hash(data: [UInt8]()).hexDigest()
+
+    static private let timeStampDateFormatter: DateFormatter = createTimeStampDateFormatter()
 
     /// Initialise the Signer class with AWS credentials
     public init(credentials: Credential, name: String, region: String) {
@@ -69,8 +77,7 @@ public struct AWSSigner {
     public func signURL(url: URL, method: HTTPMethod = .GET, body: BodyData? = nil, date: Date = Date(), expires: Int = 86400) -> URL {
         let headers = HTTPHeaders([("host", url.host ?? "")])
         // Create signing data
-        let signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, date: AWSSigner.timestamp(date), signer: self)
-
+        var signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, date: AWSSigner.timestamp(date), signer: self)
         // Construct query string. Start with original query strings and append all the signing info.
         var query = url.query ?? ""
         if query.count > 0 {
@@ -101,7 +108,7 @@ public struct AWSSigner {
     }
 
     /// structure used to store data used throughout the signing process
-    class SigningData {
+    struct SigningData {
         let url : URL
         let method : HTTPMethod
         let hashedPayload : String
@@ -202,14 +209,18 @@ public struct AWSSigner {
     static func hexEncoded(_ buffer: [UInt8]) -> String {
         return buffer.map{String(format: "%02x", $0)}.joined(separator: "")
     }
-
-    /// return a timestamp formatted for signing requests
-    static func timestamp(_ date: Date) -> String {
+    /// create timestamp dateformatter
+    static private func createTimeStampDateFormatter() -> DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
         formatter.timeZone = TimeZone(abbreviation: "UTC")
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter.string(from: date)
+        return formatter
+    }
+
+    /// return a timestamp formatted for signing requests
+    static func timestamp(_ date: Date) -> String {
+        return timeStampDateFormatter.string(from: date)
     }
 }
 

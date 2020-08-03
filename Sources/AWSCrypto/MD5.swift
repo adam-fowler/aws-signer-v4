@@ -1,7 +1,7 @@
-// MD5.swift
-// based on the Vapor/open-crypto project which tries to replicate the CryptoKit framework interface
+// Replicating the CryptoKit framework interface for < macOS 10.15
 // written by AdamFowler 2020/01/30
-#if canImport(CommonCrypto)
+
+#if !os(Linux)
 
 import CommonCrypto
 
@@ -37,23 +37,6 @@ public extension Insecure {
             CC_MD5_Final(&digest, &context)
             return .init(bytes: digest)
         }
-    }
-}
-
-#else
-
-import CAWSCrypto
-
-public extension Insecure {
-    struct MD5Digest : ByteDigest {
-        public static var byteCount: Int { return Int(MD5_DIGEST_LENGTH) }
-        public var bytes: [UInt8]
-    }
-
-    struct MD5: _OpenSSLHashFunction {
-        public typealias Digest = MD5Digest
-        public static var algorithm: OpaquePointer { return EVP_md5() }
-        var context: OpaquePointer
     }
 }
 

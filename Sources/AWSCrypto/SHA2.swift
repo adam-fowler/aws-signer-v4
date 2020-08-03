@@ -1,7 +1,7 @@
-// SHA2.swift
-// based on the Vapor/open-crypto project which tries to replicate the CryptoKit framework interface
+// Replicating the CryptoKit framework interface for < macOS 10.15
 // written by AdamFowler 2020/01/30
-#if canImport(CommonCrypto)
+
+#if !os(Linux)
 
 import CommonCrypto
 
@@ -99,43 +99,6 @@ public struct SHA512: CCHashFunction {
         CC_SHA512_Final(&digest, &context)
         return .init(bytes: digest)
     }
-}
-
-#else
-
-import CAWSCrypto
-
-public struct SHA256Digest : ByteDigest {
-    public static var byteCount: Int { return Int(SHA256_DIGEST_LENGTH) }
-    public var bytes: [UInt8]
-}
-
-public struct SHA256: _OpenSSLHashFunction {
-    public typealias Digest = SHA256Digest
-    public static var algorithm: OpaquePointer { return EVP_sha256() }
-    var context: OpaquePointer
-}
-
-public struct SHA384Digest : ByteDigest {
-    public static var byteCount: Int { return Int(SHA384_DIGEST_LENGTH) }
-    public var bytes: [UInt8]
-}
-
-public struct SHA384: _OpenSSLHashFunction {
-    public typealias Digest = SHA384Digest
-    public static var algorithm: OpaquePointer { return EVP_sha384() }
-    var context: OpaquePointer
-}
-
-public struct SHA512Digest : ByteDigest {
-    public static var byteCount: Int { return Int(SHA512_DIGEST_LENGTH) }
-    public var bytes: [UInt8]
-}
-
-public struct SHA512: _OpenSSLHashFunction {
-    public typealias Digest = SHA512Digest
-    public static var algorithm: OpaquePointer { return EVP_sha512() }
-    var context: OpaquePointer
 }
 
 #endif

@@ -1,10 +1,11 @@
-// ByteArray.swift
-// based on the Vapor/open-crypto project which tries to replicate the CryptoKit framework interface
+// Replicating the CryptoKit framework interface for < macOS 10.15
 // written by AdamFowler 2020/01/30
+#if !os(Linux)
+
 import protocol Foundation.ContiguousBytes
 
 /// Protocol for object encapsulating an array of bytes
-protocol ByteArray: Sequence, ContiguousBytes, CustomStringConvertible, Hashable where Element == UInt8 {
+protocol ByteArray: Sequence, ContiguousBytes, Hashable where Element == UInt8 {
     init(bytes: [UInt8])
     var bytes: [UInt8] { get set }
 }
@@ -21,10 +22,6 @@ extension ByteArray {
     public func withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
         return try bytes.withUnsafeBytes(body)
     }
-
-    public var description: String {
-        // hex digest
-        return bytes.map{String(format: "%02x", $0)}.joined()
-    }
 }
 
+#endif

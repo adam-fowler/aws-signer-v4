@@ -1,7 +1,9 @@
-// HashFunction.swift
-// HashFunction protocol and OpenSSL, CommonCrypto specialisations
-// based on the Vapor/open-crypto project which tries to replicate the CryptoKit framework interface
+// Replicating the CryptoKit framework interface for < macOS 10.15
 // written by AdamFowler 2020/01/30
+
+#if !os(Linux)
+
+import CommonCrypto
 import protocol Foundation.DataProtocol
 
 /// Protocol for Hashing function
@@ -59,55 +61,10 @@ extension HashFunction {
     }
 }
 
-#if canImport(CommonCrypto)
-
-import CommonCrypto
-
 /// public protocol for Common Crypto hash functions
 public protocol CCHashFunction: HashFunction {
     static var algorithm: CCHmacAlgorithm { get }
 }
 
-#else
-
-import CAWSCrypto
-
-/// public protocol for OpenSSL hash function
-public protocol OpenSSLHashFunction: HashFunction {
-    static var algorithm: OpaquePointer { get }
-}
-
-/// internal protocol for OpenSSL hash functions that hides implementation details
-protocol _OpenSSLHashFunction: OpenSSLHashFunction where Digest: ByteDigest {
-    var context: OpaquePointer { get set }
-    init(context: OpaquePointer)
-}
-
-extension _OpenSSLHashFunction {
-    /// initialization
-    public init() {
-        self.init(context: AWSCRYPTO_EVP_MD_CTX_new())
-        initialize()
-    }
-    
-    /// initialize hash function
-    mutating func initialize() {
-        EVP_DigestInit_ex(context, Self.algorithm, nil)
-    }
-    
-    /// update hash function with data
-    public mutating func update(bufferPointer: UnsafeRawBufferPointer) {
-        EVP_DigestUpdate(context, bufferPointer.baseAddress, bufferPointer.count)
-    }
-    
-    /// finalize hash function and return digest
-    public mutating func finalize() -> Self.Digest {
-        var digest: [UInt8] = .init(repeating: 0, count: Digest.byteCount)
-        var count: UInt32 = 0
-        EVP_DigestFinal_ex(context, &digest, &count)
-        AWSCRYPTO_EVP_MD_CTX_free(context)
-        return .init(bytes: .init(digest))
-    }
-}
 
 #endif

@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "AWSSigner",
+    name: "aws-signer-v4",
     products: [
         .library(name: "AWSSigner", targets: ["AWSSigner"]),
         .library(name: "HTTPClientAWSSigner", targets: ["HTTPClientAWSSigner"]),

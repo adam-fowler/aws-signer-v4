@@ -1,5 +1,4 @@
 import XCTest
-import AsyncHTTPClient
 import NIO
 @testable import AWSSigner
 

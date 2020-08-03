@@ -6,19 +6,16 @@ import PackageDescription
 let package = Package(
     name: "aws-signer-v4",
     products: [
-        .library(name: "AWSSigner", targets: ["AWSSigner"]),
-        .library(name: "HTTPClientAWSSigner", targets: ["HTTPClientAWSSigner"]),
+        .library(name: "AWSSigner", targets: ["AWSSigner"])
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.0.0")),
-        .package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.0.0"))
+        .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.13.1"))
     ],
     targets: [
         .target(name: "AWSSigner", dependencies: ["AWSCrypto", "NIO", "NIOHTTP1"]),
         .target(name: "AWSCrypto", dependencies: []),
-        .target(name: "HTTPClientAWSSigner", dependencies: ["AWSSigner", "AsyncHTTPClient"]),
         
-        .testTarget(name: "AWSSignerTests", dependencies: ["AWSSigner", "HTTPClientAWSSigner"])
+        .testTarget(name: "AWSSignerTests", dependencies: ["AWSSigner"])
     ]
 )
 

@@ -1,6 +1,6 @@
 # AWS Signer
-[<img src="http://img.shields.io/badge/swift-5.0-brightgreen.svg" alt="Swift 5.0" />](https://swift.org)
-[<img src="https://github.com/adam-fowler/aws-signer/workflows/Swift/badge.svg" />](https://github.com/adam-fowler/aws-signer/actions)
+[<img src="http://img.shields.io/badge/swift-5.1-brightgreen.svg" alt="Swift 5.1" />](https://swift.org)
+[<img src="https://github.com/adam-fowler/aws-signer-v4/workflows/CI/badge.svg" />](https://github.com/adam-fowler/aws-signer/actions)
 
 Generate a signed URL or Request headers for submitting to Amazon Web Services. Supply the library with your URL, HTTP method, headers and body and get back a signed URL or signed headers to use in your HTTP Request. 
 

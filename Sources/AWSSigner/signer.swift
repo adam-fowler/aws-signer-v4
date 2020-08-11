@@ -120,7 +120,7 @@ public struct AWSSigner {
         var date : String { return String(datetime.prefix(8))}
 
         init(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: BodyData? = nil, bodyHash: String? = nil, date: String, signer: AWSSigner) {
-            if url.absoluteString.hasSuffix("amazonaws.com") {
+            if url.path == "" {
                 //URL has to have trailing slash
                 self.url = url.appendingPathComponent("/")
             } else {

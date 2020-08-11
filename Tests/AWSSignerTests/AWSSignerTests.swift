@@ -66,11 +66,21 @@ final class AWSSignerTests: XCTestCase {
         }
     }
     
+    func testTrailingSlash() {
+        let signer = AWSSigner(credentials: credentials, name: "dynamodb", region:"us-west-1")
+        let url = URL(string: "https://dynamodb.us-west-1.amazonaws.com")!
+        let dateString = AWSSigner.timestamp(Date(timeIntervalSinceReferenceDate: 0))
+        let signingData = AWSSigner.SigningData(url: url, method: .POST, date: dateString, signer: signer)
+        XCTAssertTrue(signingData.url.absoluteString.hasSuffix("amazonaws.com/"))
+        XCTAssertTrue(signingData.unsignedURL.absoluteString.hasSuffix("amazonaws.com/"))
+    }
+    
     static var allTests = [
         ("testSignGetHeaders", testSignGetHeaders),
         ("testSignPutHeaders", testSignPutHeaders),
         ("testSignS3GetURL", testSignS3GetURL),
         ("testSignS3PutURL", testSignS3PutURL),
         ("testBodyData", testBodyData),
+        ("testTrailingSlash", testTrailingSlash),
     ]
 }

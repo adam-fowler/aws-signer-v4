@@ -9,7 +9,7 @@ let package = Package(
         .library(name: "AWSSigner", targets: ["AWSSigner"])
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.13.1"))
+        .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.33.0"))
     ],
     targets: [
         .target(name: "AWSSigner", dependencies: ["AWSCrypto", "NIO", "NIOHTTP1"]),

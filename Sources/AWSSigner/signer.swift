@@ -7,6 +7,10 @@
 //  AWS documentation about signing requests is here https://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html
 //
 
+import Crypto
+import NIOCore
+import NIOHTTP1
+
 import struct Foundation.CharacterSet
 import struct Foundation.Data
 import struct Foundation.Date
@@ -14,9 +18,6 @@ import class Foundation.DateFormatter
 import struct Foundation.Locale
 import struct Foundation.TimeZone
 import struct Foundation.URL
-import AWSCrypto
-import NIO
-import NIOHTTP1
 
 /// Amazon Web Services V4 Signer
 public struct AWSSigner {
@@ -46,7 +47,10 @@ public struct AWSSigner {
     }
 
     /// Generate signed headers, for a HTTP request
-    public func signHeaders(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: BodyData? = nil, date: Date = Date()) -> HTTPHeaders {
+    public func signHeaders(
+        url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(),
+        body: BodyData? = nil, date: Date = Date()
+    ) -> HTTPHeaders {
         let bodyHash = AWSSigner.hashedPayload(body)
         let dateString = AWSSigner.timestamp(date)
         var headers = headers
@@ -59,13 +63,16 @@ public struct AWSSigner {
         }
 
         // construct signing data. Do this after adding the headers as it uses data from the headers
-        let signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, bodyHash: bodyHash, date: dateString, signer: self)
+        let signingData = AWSSigner.SigningData(
+            url: url, method: method, headers: headers, body: body, bodyHash: bodyHash,
+            date: dateString, signer: self)
 
         // construct authorization string
-        let authorization = "AWS4-HMAC-SHA256 " +
-            "Credential=\(credentials.accessKeyId)/\(signingData.date)/\(region)/\(name)/aws4_request, " +
-            "SignedHeaders=\(signingData.signedHeaders), " +
-        "Signature=\(signature(signingData: signingData))"
+        let authorization =
+            "AWS4-HMAC-SHA256 "
+            + "Credential=\(credentials.accessKeyId)/\(signingData.date)/\(region)/\(name)/aws4_request, "
+            + "SignedHeaders=\(signingData.signedHeaders), "
+            + "Signature=\(signature(signingData: signingData))"
 
         // add Authorization header
         headers.add(name: "Authorization", value: authorization)
@@ -74,17 +81,23 @@ public struct AWSSigner {
     }
 
     /// Generate a signed URL, for a HTTP request
-    public func signURL(url: URL, method: HTTPMethod = .GET, body: BodyData? = nil, date: Date = Date(), expires: Int = 86400) -> URL {
+    public func signURL(
+        url: URL, method: HTTPMethod = .GET, body: BodyData? = nil, date: Date = Date(),
+        expires: Int = 86400
+    ) -> URL {
         let headers = HTTPHeaders([("host", url.host ?? "")])
         // Create signing data
-        var signingData = AWSSigner.SigningData(url: url, method: method, headers: headers, body: body, date: AWSSigner.timestamp(date), signer: self)
+        var signingData = AWSSigner.SigningData(
+            url: url, method: method, headers: headers, body: body, date: AWSSigner.timestamp(date),
+            signer: self)
         // Construct query string. Start with original query strings and append all the signing info.
         var query = url.query ?? ""
         if query.count > 0 {
             query += "&"
         }
         query += "X-Amz-Algorithm=AWS4-HMAC-SHA256"
-        query += "&X-Amz-Credential=\(credentials.accessKeyId)/\(signingData.date)/\(region)/\(name)/aws4_request"
+        query +=
+            "&X-Amz-Credential=\(credentials.accessKeyId)/\(signingData.date)/\(region)/\(name)/aws4_request"
         query += "&X-Amz-Date=\(signingData.datetime)"
         query += "&X-Amz-Expires=\(expires)"
         query += "&X-Amz-SignedHeaders=\(signingData.signedHeaders)"
@@ -98,28 +111,32 @@ public struct AWSSigner {
             .queryEncode()
 
         // update unsignedURL in the signingData so when the canonical request is constructed it includes all the signing query items
-        signingData.unsignedURL = URL(string: url.absoluteString.split(separator: "?")[0]+"?"+query)! // NEED TO DEAL WITH SITUATION WHERE THIS FAILS
+        signingData.unsignedURL = URL(
+            string: url.absoluteString.split(separator: "?")[0] + "?" + query)!  // NEED TO DEAL WITH SITUATION WHERE THIS FAILS
         query += "&X-Amz-Signature=\(signature(signingData: signingData))"
 
         // Add signature to query items and build a new Request
-        let signedURL = URL(string: url.absoluteString.split(separator: "?")[0]+"?"+query)!
+        let signedURL = URL(string: url.absoluteString.split(separator: "?")[0] + "?" + query)!
 
         return signedURL
     }
 
     /// structure used to store data used throughout the signing process
     struct SigningData {
-        let url : URL
-        let method : HTTPMethod
-        let hashedPayload : String
-        let datetime : String
+        let url: URL
+        let method: HTTPMethod
+        let hashedPayload: String
+        let datetime: String
         let headersToSign: [String: String]
-        let signedHeaders : String
-        var unsignedURL : URL
+        let signedHeaders: String
+        var unsignedURL: URL
 
-        var date : String { return String(datetime.prefix(8))}
+        var date: String { return String(datetime.prefix(8)) }
 
-        init(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: BodyData? = nil, bodyHash: String? = nil, date: String, signer: AWSSigner) {
+        init(
+            url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(),
+            body: BodyData? = nil, bodyHash: String? = nil, date: String, signer: AWSSigner
+        ) {
             if url.path == "" {
                 //URL has to have trailing slash
                 self.url = url.appendingPathComponent("/")
@@ -157,41 +174,50 @@ public struct AWSSigner {
 
     // Stage 3 Calculating signature as in https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
     func signature(signingData: SigningData) -> String {
-        let kDate = HMAC<SHA256>.authenticationCode(for: Data(signingData.date.utf8), using: SymmetricKey(data: Array("AWS4\(credentials.secretAccessKey)".utf8)))
-        let kRegion = HMAC<SHA256>.authenticationCode(for: Data(region.utf8), using: SymmetricKey(data: kDate))
-        let kService = HMAC<SHA256>.authenticationCode(for: Data(name.utf8), using: SymmetricKey(data: kRegion))
-        let kSigning = HMAC<SHA256>.authenticationCode(for: Data("aws4_request".utf8), using: SymmetricKey(data: kService))
-        let kSignature = HMAC<SHA256>.authenticationCode(for: stringToSign(signingData: signingData), using: SymmetricKey(data: kSigning))
+        let kDate = HMAC<SHA256>.authenticationCode(
+            for: Data(signingData.date.utf8),
+            using: SymmetricKey(data: Array("AWS4\(credentials.secretAccessKey)".utf8)))
+        let kRegion = HMAC<SHA256>.authenticationCode(
+            for: Data(region.utf8), using: SymmetricKey(data: kDate))
+        let kService = HMAC<SHA256>.authenticationCode(
+            for: Data(name.utf8), using: SymmetricKey(data: kRegion))
+        let kSigning = HMAC<SHA256>.authenticationCode(
+            for: Data("aws4_request".utf8), using: SymmetricKey(data: kService))
+        let kSignature = HMAC<SHA256>.authenticationCode(
+            for: stringToSign(signingData: signingData), using: SymmetricKey(data: kSigning))
         return kSignature.hexDigest()
     }
 
     /// Stage 2 Create the string to sign as in https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
     func stringToSign(signingData: SigningData) -> Data {
-        let stringToSign = "AWS4-HMAC-SHA256\n" +
-            "\(signingData.datetime)\n" +
-            "\(signingData.date)/\(region)/\(name)/aws4_request\n" +
-            SHA256.hash(data: canonicalRequest(signingData: signingData)).hexDigest()
+        let stringToSign =
+            "AWS4-HMAC-SHA256\n" + "\(signingData.datetime)\n"
+            + "\(signingData.date)/\(region)/\(name)/aws4_request\n"
+            + SHA256.hash(data: canonicalRequest(signingData: signingData)).hexDigest()
         return Data(stringToSign.utf8)
     }
 
     /// Stage 1 Create the canonical request as in https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
     func canonicalRequest(signingData: SigningData) -> Data {
-        let canonicalHeaders = signingData.headersToSign.map { return "\($0.key.lowercased()):\($0.value.trimmingCharacters(in: CharacterSet.whitespaces))" }
-            .sorted()
-            .joined(separator: "\n")
-        let canonicalRequest = "\(signingData.method.rawValue)\n" +
-            "\(signingData.unsignedURL.path.uriEncodeWithSlash())\n" +
-            "\(signingData.unsignedURL.query ?? "")\n" +        // should really uriEncode all the query string values
-            "\(canonicalHeaders)\n\n" +
-            "\(signingData.signedHeaders)\n" +
-            signingData.hashedPayload
+        let canonicalHeaders = signingData.headersToSign.map {
+            return
+                "\($0.key.lowercased()):\($0.value.trimmingCharacters(in: CharacterSet.whitespaces))"
+        }
+        .sorted()
+        .joined(separator: "\n")
+        let canonicalRequest =
+            "\(signingData.method.rawValue)\n"
+            + "\(signingData.unsignedURL.path.uriEncodeWithSlash())\n"
+            + "\(signingData.unsignedURL.query ?? "")\n"  // should really uriEncode all the query string values
+            + "\(canonicalHeaders)\n\n" + "\(signingData.signedHeaders)\n"
+            + signingData.hashedPayload
         return Data(canonicalRequest.utf8)
     }
 
     /// Create a SHA256 hash of the Requests body
     static func hashedPayload(_ payload: BodyData?) -> String {
         guard let payload = payload else { return hashedEmptyBody }
-        let hash : String?
+        let hash: String?
         switch payload {
         case .string(let string):
             hash = SHA256.hash(data: Data(string.utf8)).hexDigest()
@@ -212,7 +238,7 @@ public struct AWSSigner {
 
     /// return a hexEncoded string buffer from an array of bytes
     static func hexEncoded(_ buffer: [UInt8]) -> String {
-        return buffer.map{String(format: "%02x", $0)}.joined(separator: "")
+        return buffer.map { String(format: "%02x", $0) }.joined(separator: "")
     }
     /// create timestamp dateformatter
     static private func createTimeStampDateFormatter() -> DateFormatter {
@@ -239,17 +265,20 @@ extension String {
     }
 
     func uriEncodeWithSlash() -> String {
-        return addingPercentEncoding(withAllowedCharacters: String.uriAllowedWithSlashCharacters) ?? self
+        return addingPercentEncoding(withAllowedCharacters: String.uriAllowedWithSlashCharacters)
+            ?? self
     }
 
-    static let uriAllowedWithSlashCharacters = CharacterSet(charactersIn:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~/")
-    static let uriAllowedCharacters = CharacterSet(charactersIn:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
-    static let queryAllowedCharacters = CharacterSet(charactersIn:"/;+").inverted
+    static let uriAllowedWithSlashCharacters = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~/")
+    static let uriAllowedCharacters = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+    static let queryAllowedCharacters = CharacterSet(charactersIn: "/;+").inverted
 }
 
-public extension Sequence where Element == UInt8 {
+extension Sequence where Element == UInt8 {
     /// return a hexEncoded string buffer from an array of bytes
-    func hexDigest() -> String {
-        return self.map{String(format: "%02x", $0)}.joined(separator: "")
+    public func hexDigest() -> String {
+        return self.map { String(format: "%02x", $0) }.joined(separator: "")
     }
 }

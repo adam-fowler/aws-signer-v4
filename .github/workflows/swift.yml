@@ -7,7 +7,7 @@ jobs:
     runs-on: macOS-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v6
       with:
         fetch-depth: 1
     - name: Build and Test
@@ -17,18 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tag: ['5.1', '5.2']
+        tag: ['6.0', '6.1', '6.2']
     container:
       image: swift:${{ matrix.tag }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v6
       with:
         fetch-depth: 1
-    - name: Install dependencies
-      run: |
-        apt-get update -qq
-        apt-get install -q -y tzdata zlib1g-dev
     - name: Build and Test
       run: swift test
     
